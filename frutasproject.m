@@ -22,7 +22,7 @@ function varargout = frutasproject(varargin)
 
 % Edit the above text to modify the response to help frutasproject
 
-% Last Modified by GUIDE v2.5 17-Apr-2019 18:29:27
+% Last Modified by GUIDE v2.5 30-Apr-2019 00:04:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -175,6 +175,7 @@ global vid
 global carga
 global camOn
 global recortada
+global imagenNueva
 if camOn==1
     foto=getsnapshot(vid);
     stoppreview(vid);
@@ -192,6 +193,7 @@ if camOn==1
     rec=imcrop(x,[200,20,640,480]); %Selecciona con el mouse la region a recortar
     imagen=rec;
     subplot(handles.axes2), imshow(rec);
+    imagenNueva=imagen;
     recortada=1;
 elseif carga==1
     x=imagen;
@@ -200,6 +202,7 @@ elseif carga==1
     imagen=uint8(imagen);
     subplot(handles.axes2), imshow(rec);
     carga=0;
+    imagenNueva=imagen;
     recortada=1;
 else
     msgbox('Primero debe activar la camara, o cargar una iamgen','Error','error');
@@ -213,8 +216,9 @@ function load_image_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global imagen
+global imagenNueva
 global carga
-[filename,pathname]=uigetfile('*.jpg','Seleccion de Imagen');
+[filename,pathname]=uigetfile('*.jpg','Selección de Imagen');
 if isequal(filename,0)||isequal(pathname,0)
     disp('Usuario presiono cancelar')
 else
@@ -230,6 +234,7 @@ else
     handles.filename=filename;
     %imagen=uint8(imagen);
     %Muestra la imagen en el axes1, mas el titulo de Imagen original
+    imagenNueva=imagen;
     subplot (handles.axes1), imshow(imagen), title("Imagen Original");
 end
 
@@ -337,6 +342,7 @@ end
 
 
 % --- Executes on button press in segmented_image.
+%Segmentación en escala de grises
 function segmented_image_Callback(hObject, eventdata, handles)
 % hObject    handle to segmented_image (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -346,7 +352,11 @@ global imagenNueva
 global carga
 global recortada
 if carga | recortada
-    a=rgb2gray(imagenNueva);
+    try
+        a=rgb2gray(imagenNueva);
+    catch
+        a=rgb2gray(imagen);
+    end
     c=255-a;
     d=imfill(c,'holes');
     subplot (handles.axes2), imshow(d), title('Segmentación en escala de grises');
@@ -355,59 +365,181 @@ else
     msgbox('No se ha detectado ninguna imagen','Error','error');
 end
 
-% --- Executes on button press in identify_fruit.
-function identify_fruit_Callback(hObject, eventdata, handles)
-% hObject    handle to identify_fruit (see GCBO)
+% --- Executes on button press in binarize_image.
+function binarize_image_Callback(hObject, eventdata, handles)
+% hObject    handle to binarize_image (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global imagen
 global imagenNueva
 global carga
 global recortada
-if carga | recortada  
-    Im=imagenNueva;
-    %Im=im2double(Im);
-    [r ,c ,p]=size(Im);
-    %%Extracción de planos individuales de RGB de la imagen
-    imR=squeeze (imagenNueva(:,:,1));
-    imG=squeeze (imagenNueva(:,:,2));
-    imB=squeeze (imagenNueva(:,:,3));
-
-    %%Identificación de objetos
-    imBinaryR = im2bw(imR, graythresh(imR));
-    imBinaryG = im2bw(imG, graythresh(imG));
-    imBinaryB = im2bw(imB, graythresh(imB));
-    imBinary=imcomplement(imBinaryR&imBinaryG&imBinaryB);
-    imshow(imBinary);
-
-    %%Mofological Open
-    se = strel('disk', 7);
-    imClean = imopen(imBinary, se);
-
-    %%Rellenar los huecos y limpiar los bordes
-    imClean=imfill(imClean, 'holes');
-    imClean=imclearborder(imClean);
-    imshow(imClean);
-
-    %%segmentar la imagen en niveles gris
-
-    [labels, numLabels]=bwlabel(imClean);
-    disp(['Numero de objetos detectados : ', num2str(numLabels)]);
-
-    %%Inicializacion de matrices
-    rLabel=zeros(r,c);
-    gLabel=zeros(r,c);
-    bLabel=zeros(r,c);
-
-    %%color por region de cada label
-    for i =1:numLabels
-        rLabel(labels==i)=median(imR(labels==i));
-        gLabel(labels==i)=median(imG(labels==i));
-        bLabel(labels==i)=median(imB(labels==i));
+try
+    if carga | recortada  
+        level = 0.6;
+        imagenBinaria= imbinarize(imagenNueva,level);
+        subplot (handles.axes2), imshow(imagenBinaria), title('Imagen binarizada');
+    else
+        msgbox('No se ha detectado ninguna imagen','Error','error')
     end
-
-    imLabel = cat(3,rLabel, gLabel, bLabel);
-    imshow(imLabel);
-else
-    msgbox('No se ha detectado ninguna imagen','Error','error')
+catch
+    msgbox('Ah ocurrido un error inesperado','Error','error');
 end
+
+
+% --- Executes on button press in phase1.
+%Fase 1 final con poca luz, segmentacion de color
+function phase1_Callback(hObject, eventdata, handles)
+% hObject    handle to phase1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global imagen
+global imagenNueva
+global carga
+global recortada
+try
+    if carga | recortada  
+        Im=imagenNueva;
+        %Dividir imagen en RGB
+        rmat=Im(:,:,1);
+        gmat=Im(:,:,2);
+        bmat=Im(:,:,3);
+        %Poner niveles a cada RGB para la funcion binarize
+        levelr=0.95;
+        levelg=0.98;
+        levelb=0.5;
+        %Convirtiendo la imagen a binaria, enviando cada plano y su nivel
+        %de manera dividida en cada variable
+        i1=imbinarize(rmat,levelr);
+        i2=imbinarize(gmat,levelg);
+        i3=imbinarize(bmat,levelb);
+        %Sumando cada plano  obtenido
+        Isum=(i1+i2+i3);
+        %subplot(2,2,1),imshow(rmat),title('Plano Rojo');
+        %subplot(2,2,2),imshow(gmat),title('Plano Verde');
+        %subplot(2,2,3),imshow(bmat),title('Plano Azul');
+        %subplot(2,2,4),imshow(Isum),title('Suma de todo');
+        imshow(Isum),title('Suma de todo(Poca Luz)');
+        set(handles.fill_holes,'Enable','on');
+        imagenNueva=Isum;
+    else
+        msgbox('No se ha detectado ninguna imagen','Error','error')
+        set(handles.fill_holes,'Enable','off')
+    end
+catch
+    msgbox('Primero limpie la imagen, haciendo clic en el botón limpiar','Error','error')
+    set(handles.fill_holes,'Enable','off')
+end
+
+
+% --- Executes on button press in phase2.
+%Fase 2 Final con mucha luz
+function phase2_Callback(hObject, eventdata, handles)
+% hObject    handle to phase2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global imagenNueva
+global carga
+global recortada
+try  
+    if carga | recortada  
+        Im=imagenNueva;
+        rmat=Im(:,:,1);
+        gmat=Im(:,:,2);
+        bmat=Im(:,:,3);
+        levelr=1.0;
+        levelg=.8;
+        levelb=1.0;
+        i1=imbinarize(rmat,levelr);
+        i2=imbinarize(gmat,levelg);
+        i3=imbinarize(bmat,levelb);
+        Isum=(i1+i2+i3);
+        imshow(Isum),title('Suma de todo (Mucha Luz)');
+        set(handles.fill_holes,'Enable','on')
+        imagenNueva=Isum;
+    else
+        msgbox('No se ha detectado ninguna imagen','Error','error')
+        set(handles.fill_holes,'Enable','off');
+    end
+catch
+    msgbox('Primero limpie la imagen, haciendo clic en el botón limpiar','Error','error');
+    set(handles.fill_holes,'Enable','off')
+end
+
+% --- Executes on button press in clean_image.
+%Limpiar imagen, o reeestablecerla
+function clean_image_Callback(hObject, eventdata, handles)
+% hObject    handle to clean_image (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global imagen
+global imagenNueva
+imagenNueva=imagen;
+imshow(imagenNueva), title('Imagen limpiada exitosamente');
+set(handles.fill_holes,'Enable','off')
+
+
+% --- Executes on button press in fill_holes.
+%Rellenar abujero, funcion morfologica
+function fill_holes_Callback(hObject, eventdata, handles)
+% hObject    handle to fill_holes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global imagen 
+global imagenNueva
+Icomp=imcomplement(imagenNueva);
+%Se rellena la imagen con la funcion imfill que es morfologica
+relleno=imfill(Icomp,'holes');
+imagenNueva=relleno;
+imshow(relleno), title('Imagen rellenada');
+%Bloqueo y desbloqueo de botones
+set(handles.fill_holes,'Enable','off');
+set(handles.better_holes,'Enable','on');
+
+
+% --- Executes on button press in better_holes.
+%Mejoramiento en la eliminacion de puntos innecesarios
+function better_holes_Callback(hObject, eventdata, handles)
+% hObject    handle to better_holes (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global imagen 
+global imagenNueva
+%Funcion strel es morfologica
+se = strel('disk',70);
+iopend=imopen(imagenNueva,se);
+imagenNueva=iopend;
+imshow(iopend),title('Imagen mejorada de puntos');
+set(handles.better_holes,'Enable','off');
+set(handles.extract_details,'Enable','on');
+
+
+% --- Executes on button press in extract_details.
+%Extraer detalles mas fieles de la imagen
+function extract_details_Callback(hObject, eventdata, handles)
+% hObject    handle to extract_details (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global imagen 
+global imagenNueva
+region=regionprops(imagenNueva,'centroid');
+[labeled,numObjects]=bwlabel(imagenNueva,4);
+stats=regionprops(labeled,'Eccentricity','Area','BoundingBox');
+areas=[stats.Area];
+excentrecidades=[stats.Eccentricity];
+idxOfSkittles=find(excentrecidades);
+defectosDeEstado=stats(idxOfSkittles);
+imshow(imagenNueva);
+hold on;
+for idx=1:length(idxOfSkittles)
+    h=rectangle('Position',defectosDeEstado(idx).BoundingBox,'LineWidth',2);
+    set(h,'EdgeColor',[.75 0 0]);
+    hold on;
+end
+title(['Hay ',num2str(numObjects),' objeto(s) en la imagen']);
+hold off;
+set(handles.better_holes,'Enable','off');
+set(handles.extract_details,'Enable','off');
+msgbox('Análisis completado con éxito.','Éxito');
+
+ 
