@@ -22,7 +22,7 @@ function varargout = frutasproject(varargin)
 
 % Edit the above text to modify the response to help frutasproject
 
-% Last Modified by GUIDE v2.5 20-May-2019 22:06:23
+% Last Modified by GUIDE v2.5 20-May-2019 20:10:05
 
 %Realizado por César: github.com/xonex1208
 
@@ -608,31 +608,20 @@ global recortada
     disp(label);
     if strcmp(char(label),'banana')
         subplot(handles.axes2),imshow(picture),title('Platano')  % Show the picture
-        msgbox('Análisis completado con éxito.','Éxito');
     elseif strcmp(char(label),'orange')
         subplot(handles.axes2),imshow(picture),title('Naranga')% Show the picture
-        msgbox('Análisis completado con éxito.','Éxito');
     elseif strcmp(char(label),'apple')
-        subplot(handles.axes2),imshow(picture),title('Manzana')% Show the picture
-        msgbox('Análisis completado con éxito.','Éxito');
-    elseif strcmp(char(label),'pomegranate')
-        subplot(handles.axes2),imshow(picture),title('Manzana')% Show the picture
-        msgbox('Análisis completado con éxito.','Éxito');
-    elseif strcmp(char(label),'buckeye')
-        subplot(handles.axes2),imshow(picture),title('Manzana')% Show the picture
-        msgbox('Análisis completado con éxito.','Éxito');
+        subplot(handles.axes2),imshow(picture),title('Naranga')% Show the picture
     else
-        %subplot(handles.axes2),imshow(picture),title(char(label)) 
-        subplot(handles.axes2),imshow(picture),title('Fruta no detectada')
+        
     end
     drawnow;   
 %subplot(handles.axes2),imshow(picture),title(char(label)) 
 
-
-
-% --- Executes on button press in info.
-function info_Callback(hObject, eventdata, handles)
-% hObject    handle to info (see GCBO)
+% --- Executes on button press in stop_detection.
+function stop_detection_Callback(hObject, eventdata, handles)
+% hObject    handle to stop_detection (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-msgbox({'Desarrollado por:';'César A. Ramírez Orozco';'Ilse Mandujano Plata';'Carlos F. Procopio Torres'},'Acerca de...','help');
+global bandera
+bandera=false;
