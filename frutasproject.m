@@ -178,6 +178,7 @@ global carga
 global camOn
 global recortada
 global imagenNueva
+global imagenRecortada
 if camOn==1
     foto=getsnapshot(vid);
     stoppreview(vid);
@@ -193,18 +194,25 @@ if camOn==1
     %tamaño de la imagen, entre mas pequeño el recorte mas grande se vera la
     %imagen, ya que el recorte se hace de afuera para adentro
     rec=imcrop(x,[200,20,640,480]); %Selecciona con el mouse la region a recortar
-    imagen=rec;
-    subplot(handles.axes2), imshow(rec);
-    imagenNueva=imagen;
+    %imagen=rec;
+    temporal=rec;
+    subplot(handles.axes2), imshow(rec), title("Imagen recortada");;
+    imagenNueva=temporal;
+    imagenRecortada=temporal;
     recortada=1;
 elseif carga==1
     x=imagen;
     rec=imcrop(x,[410,100,2448,3264]); %Selecciona con el mouse la region a recortar
-    imagen=rec;
-    imagen=uint8(imagen);
-    subplot(handles.axes2), imshow(rec);
+    %imagen=rec;
+    %imagen=uint8(imagen);
+    %Convertir imagen a mapa de 8 bits y asignar lo que tiene rec a
+    %temporal
+    temporal=rec;
+    temporal=uint8(temporal);
+    subplot(handles.axes2), imshow(rec), title("Imagen recortada");
     carga=0;
-    imagenNueva=imagen;
+    imagenNueva=temporal;
+    imagenRecortada=temporal;
     recortada=1;
 else
     msgbox('Primero debe activar la camara, o cargar una iamgen','Error','error');
@@ -487,6 +495,8 @@ function clean_image_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global imagen
 global imagenNueva
+global carga
+carga=1;
 imagenNueva=imagen;
 imshow(imagenNueva), title('Imagen limpiada exitosamente');
 set(handles.fill_holes,'Enable','off')
@@ -595,22 +605,31 @@ set(handles.edges_detectionC,'Enable','off')
 
 
 % --- Executes on button press in fruit_detection.
+%Funcion para detectar la fruta
 function fruit_detection_Callback(hObject, eventdata, handles)
 % hObject    handle to fruit_detection (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global imagen
 global recortada
+global carga
+global imagenRecortada
+if carga
+    %Se declara la variable nnet con la Red neuronal alexnet
     nnet = alexnet;
+    %Se cambia el tamaño de la imagen a 227X227, ya que asi la requiere
+    %alexnet
     picture = imresize(imagen,[227,227]); 
+    %Se obtiene el nombre del objeto, con la funcion classify, la red
+    %neuronal y la imagen
     label = classify(nnet, picture); 
-    disp('Contenido: ')
-    disp(label);
+    %If para saber que fruta es y traducirla al español
+    %strcmp para comparar dos cadenas, 1 cadenas iguales, 0 diferentes
     if strcmp(char(label),'banana')
         subplot(handles.axes2),imshow(picture),title('Platano')  % Show the picture
         msgbox('Análisis completado con éxito.','Éxito');
     elseif strcmp(char(label),'orange')
-        subplot(handles.axes2),imshow(picture),title('Naranga')% Show the picture
+        subplot(handles.axes2),imshow(picture),title('Naranja')% Show the picture
         msgbox('Análisis completado con éxito.','Éxito');
     elseif strcmp(char(label),'apple')
         subplot(handles.axes2),imshow(picture),title('Manzana')% Show the picture
@@ -621,16 +640,57 @@ global recortada
     elseif strcmp(char(label),'buckeye')
         subplot(handles.axes2),imshow(picture),title('Manzana')% Show the picture
         msgbox('Análisis completado con éxito.','Éxito');
+    elseif strcmp(char(label),'strawberry')
+        subplot(handles.axes2),imshow(picture),title('Fresa')% Mostrar la imagen
+    elseif strcmp(char(label),'bagel')
+        subplot(handles.axes2),imshow(picture),title('Naranja')% Mostrar la imagen
+        %subplot(handles.axes2),imshow(picture),title('Fruta no detectada')
     else
-        %subplot(handles.axes2),imshow(picture),title(char(label)) 
+        %subplot(handles.axes2),imshow(picture),title(char(label))
+        subplot(handles.axes2),imshow(picture),title('Fruta no detectada')
+    end
+    %Dibujar la imagen
+    drawnow;   
+    carga=0;
+    recortada=0;
+elseif recortada
+    nnet = alexnet;
+    picture = imresize(imagenRecortada,[227,227]); 
+    label = classify(nnet, picture); 
+    if strcmp(char(label),'banana')
+        subplot(handles.axes2),imshow(picture),title('Platano')  % Mostrar la imagen
+        msgbox('Análisis completado con éxito.','Éxito');
+    elseif strcmp(char(label),'orange')
+        subplot(handles.axes2),imshow(picture),title('Naranja')% Mostrar la imagen
+        msgbox('Análisis completado con éxito.','Éxito');
+    elseif strcmp(char(label),'apple')
+        subplot(handles.axes2),imshow(picture),title('Manzana')% Mostrar la imagen
+        msgbox('Análisis completado con éxito.','Éxito');
+    elseif strcmp(char(label),'pomegranate')
+        subplot(handles.axes2),imshow(picture),title('Manzana')% Mostrar la imagen
+        msgbox('Análisis completado con éxito.','Éxito');
+    elseif strcmp(char(label),'buckeye')
+        subplot(handles.axes2),imshow(picture),title('Manzana')% Mostrar la imagen
+        msgbox('Análisis completado con éxito.','Éxito');
+    elseif strcmp(char(label),'strawberry')
+        subplot(handles.axes2),imshow(picture),title('Fresa')% Mostrar la imagen
+        %subplot(handles.axes2),imshow(picture),title('Fruta no detectada')
+    elseif strcmp(char(label),'bagel')
+        subplot(handles.axes2),imshow(picture),title('Naranja')% Mostrar la imagen
+    else
         subplot(handles.axes2),imshow(picture),title('Fruta no detectada')
     end
     drawnow;   
+    recortada=0;
+    carga=0;
+else
+    msgbox('Carge o tome primero una imagen','Error','error');
+end
+
 %subplot(handles.axes2),imshow(picture),title(char(label)) 
 
-
-
 % --- Executes on button press in info.
+%Funcion de informacion del software
 function info_Callback(hObject, eventdata, handles)
 % hObject    handle to info (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
