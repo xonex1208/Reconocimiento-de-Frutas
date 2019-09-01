@@ -22,7 +22,7 @@ function varargout = frutasproject(varargin)
 
 % Edit the above text to modify the response to help frutasproject
 
-% Last Modified by GUIDE v2.5 20-May-2019 22:06:23
+% Last Modified by GUIDE v2.5 01-Sep-2019 00:15:59
 
 %Realizado por César: github.com/xonex1208
 
@@ -110,7 +110,8 @@ try
     vid.ReturnedColorspace='rgb';
     hImage=image(zeros(480,640,3),'Parent',handles.axes1);
     preview(vid,hImage);
-    guidata(hObject,handles);
+    guidata(hObject,handles.axes1);
+    
 catch
     msgbox('A ocurrido un error inesperado','Error','error');
 end
@@ -645,9 +646,11 @@ if carga
     elseif strcmp(char(label),'bagel')
         subplot(handles.axes2),imshow(picture),title('Naranja')% Mostrar la imagen
         %subplot(handles.axes2),imshow(picture),title('Fruta no detectada')
+    elseif strcmp (char(label),'mango')
+        subplot(handles.axes2),imshow(picture),title(char(label))% Mostrar la imagen
     else
-        %subplot(handles.axes2),imshow(picture),title(char(label))
-        subplot(handles.axes2),imshow(picture),title('Fruta no detectada')
+        %subplot(handles.axes2),imshow(picture),title('Fruta no detectada')
+        subplot(handles.axes2),imshow(picture),title(char(label))
     end
     %Dibujar la imagen
     drawnow;   
@@ -677,8 +680,10 @@ elseif recortada
         %subplot(handles.axes2),imshow(picture),title('Fruta no detectada')
     elseif strcmp(char(label),'bagel')
         subplot(handles.axes2),imshow(picture),title('Naranja')% Mostrar la imagen
+    elseif strcmp (char(label),'mango')
+        subplot(handles.axes2),imshow(picture),title(char(label))% Mostrar la imagen
     else
-        subplot(handles.axes2),imshow(picture),title('Fruta no detectada')
+        subplot(handles.axes2),imshow(picture),title(char(label))
     end
     drawnow;   
     recortada=0;
@@ -695,4 +700,57 @@ function info_Callback(hObject, eventdata, handles)
 % hObject    handle to info (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-msgbox({'Desarrollado por:';'César A. Ramírez Orozco';'Ilse Mandujano Plata';'Carlos F. Procopio Torres'},'Acerca de...','help');
+msgbox({'Desarrollado por:';'César A. Ramírez Orozco'},'Acerca de...','help');
+
+
+% --- Executes on button press in camera_real_time.
+%Funcion activa la camara en tiempo real y su deteccion de frutas
+function camera_real_time_Callback(hObject, eventdata, handles)
+% hObject    handle to camera_real_time (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global real_camera 
+real_camera = true;
+camera = webcam; % Connect to the camera
+nnet = alexnet;  % Load the neural net
+while real_camera   
+    picture = camera.snapshot;              % Take a picture    
+    picture = imresize(picture,[227,227]);  % Resize the picture
+    label = classify(nnet, picture);        % Classify the picture
+       
+    image(picture);     % Show the picture
+    %title(char(label)); % Show the label
+    if strcmp(char(label),'banana')
+        subplot(handles.axes2),title('Platano')  % Mostrar la imagen
+    elseif strcmp(char(label),'orange')
+        subplot(handles.axes2),title('Naranja')% Mostrar la imagen
+    elseif strcmp(char(label),'apple')
+        subplot(handles.axes2),title('Manzana')% Mostrar la imagen
+    elseif strcmp(char(label),'pomegranate')
+        subplot(handles.axes2),title('Manzana')% Mostrar la imagen
+    elseif strcmp(char(label),'buckeye')
+        subplot(handles.axes2),title('Manzana')% Mostrar la imagen
+    elseif strcmp(char(label),'strawberry')
+        subplot(handles.axes2),title('Fresa')% Mostrar la imagen
+    elseif strcmp(char(label),'bagel')
+        subplot(handles.axes2),title('Naranja')% Mostrar la imagen
+    elseif strcmp (char(label),'mango')
+        subplot(handles.axes2),title('Mango')% Mostrar la imagen
+    elseif strcmp (char(label),'lemon')
+        subplot(handles.axes2),title('Naranja')% Mostrar la imagen
+    else
+        subplot(handles.axes2),title('Fruta no encontrada')
+    end
+    drawnow;   
+end
+
+
+% --- Executes on button press in stop_camera_real.
+%Se detiene la camara
+function stop_camera_real_Callback(hObject, eventdata, handles)
+% hObject    handle to stop_camera_real (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global real_camera
+real_camera= false;
+    
